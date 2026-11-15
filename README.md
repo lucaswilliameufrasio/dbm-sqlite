@@ -30,6 +30,19 @@ execution stops the open, and an existing file is left in place. SQL after
 that runs on `connection` in the calling thread. Shipped applications move
 forward; this version has no down migration.
 
+## Read a diagnosis
+
+```rust
+let report = dbm_sqlite::doctor(path, "1.2.3", &migrations);
+let text = report.to_string();
+```
+
+`doctor` only reads. Pass the application version. The text includes that
+version, the bundled SQLite version, the journal head, its checksum, and the
+execution state. It leaves out the path, the SQL text, table names, and rows
+from application tables. Attach `text` to a crash report. A missing file is
+not created.
+
 ## Checks
 
 ```sh

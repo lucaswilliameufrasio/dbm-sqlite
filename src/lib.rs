@@ -3,9 +3,11 @@
 //! This crate does not depend on `database-migrator`. `Database::open` reads
 //! the local journal before it writes migration SQL. An applied version keeps
 //! its checksum. An unknown execution blocks writes. A failure leaves an
-//! existing database file in place.
+//! existing database file in place. [`doctor`] reads that file and returns a
+//! short report that can be attached to a crash report.
 
 mod checksum;
+mod doctor;
 mod error;
 mod guard;
 mod journal;
@@ -13,6 +15,7 @@ mod version;
 
 use std::path::Path;
 
+pub use doctor::{DoctorReport, FileStatus, Finding, JournalHead, doctor};
 pub use error::{ChecksumMismatch, Error, ErrorKind, UnknownExecution};
 
 /// One timestamped SQL migration.

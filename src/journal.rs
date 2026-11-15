@@ -10,7 +10,7 @@ use crate::error::{Error, ErrorKind};
 use crate::guard::{self, SqlReject};
 use crate::version::validate_version;
 
-const JOURNAL_TABLE: &str = "dbm_sqlite_journal";
+pub(crate) const JOURNAL_TABLE: &str = "dbm_sqlite_journal";
 
 const CREATE_JOURNAL: &str = "CREATE TABLE dbm_sqlite_journal (
     version TEXT PRIMARY KEY,
@@ -18,20 +18,20 @@ const CREATE_JOURNAL: &str = "CREATE TABLE dbm_sqlite_journal (
     state TEXT NOT NULL CHECK (state IN ('started', 'applied', 'failed'))
 ) STRICT";
 
-struct PreparedMigration {
-    version: String,
+pub(crate) struct PreparedMigration {
+    pub(crate) version: String,
     sql: String,
-    checksum: String,
+    pub(crate) checksum: String,
 }
 
-struct Catalog {
-    migrations: Vec<PreparedMigration>,
+pub(crate) struct Catalog {
+    pub(crate) migrations: Vec<PreparedMigration>,
 }
 
-struct JournalRow {
-    version: String,
-    checksum: String,
-    state: String,
+pub(crate) struct JournalRow {
+    pub(crate) version: String,
+    pub(crate) checksum: String,
+    pub(crate) state: String,
 }
 
 #[derive(Debug)]
@@ -237,7 +237,7 @@ fn current_state(connection: &Connection, version: &str) -> Result<String, rusql
     Ok(state.unwrap_or_else(|| "absent".to_owned()))
 }
 
-fn prepare(migrations: &[Migration<'_>]) -> Result<Catalog, ErrorKind> {
+pub(crate) fn prepare(migrations: &[Migration<'_>]) -> Result<Catalog, ErrorKind> {
     let mut prepared = Vec::with_capacity(migrations.len());
     for migration in migrations {
         if !validate_version(migration.version) {
@@ -384,7 +384,7 @@ fn open_writable(path: &Path) -> Result<Connection, ErrorKind> {
     }
 }
 
-fn open_readonly(path: &Path) -> Result<Connection, ErrorKind> {
+pub(crate) fn open_readonly(path: &Path) -> Result<Connection, ErrorKind> {
     let flags = OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NOFOLLOW;
     match Connection::open_with_flags(path, flags) {
         Ok(connection) => Ok(connection),
@@ -392,7 +392,7 @@ fn open_readonly(path: &Path) -> Result<Connection, ErrorKind> {
     }
 }
 
-fn table_names(connection: &Connection) -> Result<Vec<String>, rusqlite::Error> {
+pub(crate) fn table_names(connection: &Connection) -> Result<Vec<String>, rusqlite::Error> {
     let mut statement = connection.prepare(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     )?;
@@ -404,7 +404,7 @@ fn table_names(connection: &Connection) -> Result<Vec<String>, rusqlite::Error> 
     Ok(names)
 }
 
-fn read_journal(connection: &Connection) -> Result<Vec<JournalRow>, rusqlite::Error> {
+pub(crate) fn read_journal(connection: &Connection) -> Result<Vec<JournalRow>, rusqlite::Error> {
     let mut statement = connection
         .prepare("SELECT version, checksum, state FROM dbm_sqlite_journal ORDER BY version")?;
     let mut rows = statement.query([])?;
