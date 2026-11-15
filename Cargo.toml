@@ -1,0 +1,23 @@
+[package]
+name = "dbm-sqlite"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+description = "Synchronous SQLite library for application cores"
+readme = "README.md"
+repository = "https://github.com/lucaswilliameufrasio/dbm-sqlite"
+publish = false
+
+[lib]
+name = "dbm_sqlite"
+path = "src/lib.rs"
+
+[dependencies]
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
