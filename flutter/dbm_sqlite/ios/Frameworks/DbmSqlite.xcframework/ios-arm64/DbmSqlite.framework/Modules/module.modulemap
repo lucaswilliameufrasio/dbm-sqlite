@@ -1,0 +1,4 @@
+framework module DbmSqlite {
+    header "dbm_sqlite.h"
+    export *
+}

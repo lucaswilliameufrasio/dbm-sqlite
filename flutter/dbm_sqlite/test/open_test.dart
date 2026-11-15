@@ -29,9 +29,11 @@ void main() {
       database.execute("INSERT INTO note (body) VALUES ('from-dart');"),
       1,
     );
-    expect(database.query('SELECT body FROM note;').rows.single.single, 'from-dart');
+    expect(database.query('SELECT body FROM note;').rows.single.single,
+        'from-dart');
     expect(
-      () => DbmDatabase.open(path: path, migrations: const <Migration>[original]),
+      () =>
+          DbmDatabase.open(path: path, migrations: const <Migration>[original]),
       throwsA(
         isA<DbmSqliteException>().having(
           (error) => error.code,
@@ -58,7 +60,8 @@ void main() {
         migrations: const <Migration>[
           Migration(
             version: version,
-            sql: 'CREATE TABLE note (id INTEGER PRIMARY KEY, body TEXT, extra TEXT);',
+            sql:
+                'CREATE TABLE note (id INTEGER PRIMARY KEY, body TEXT, extra TEXT);',
           ),
         ],
       ),

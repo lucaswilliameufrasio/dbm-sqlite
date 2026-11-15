@@ -10,14 +10,15 @@ fi
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
-export IPHONEOS_DEPLOYMENT_TARGET=13.0
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim --toolchain 1.99.1
 
 device_sdk=$(xcrun --sdk iphoneos --show-sdk-path)
 sim_sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
 
-SDKROOT="$device_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios
-SDKROOT="$sim_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios-sim
+# Device stays on iOS 13. The arm64 simulator does not exist before iOS 14,
+# and rustc raises that slice to 14 even when the deployment target is lower.
+IPHONEOS_DEPLOYMENT_TARGET=13.0 SDKROOT="$device_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios
+IPHONEOS_DEPLOYMENT_TARGET=14.0 SDKROOT="$sim_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios-sim
 
 stage="$root/target/ios-xcframework"
 rm -rf "$stage"
@@ -28,6 +29,7 @@ make_framework() {
   local src_dylib="$1"
   local dest_dir="$2"
   local platform="$3"
+  local minimum_os="$4"
   local fw="$dest_dir/DbmSqlite.framework"
   mkdir -p "$fw/Headers" "$fw/Modules"
   cp "$src_dylib" "$fw/DbmSqlite"
@@ -62,7 +64,7 @@ EOF
   <key>CFBundleVersion</key>
   <string>0.1.0</string>
   <key>MinimumOSVersion</key>
-  <string>13.0</string>
+  <string>${minimum_os}</string>
   <key>CFBundleSupportedPlatforms</key>
   <array>
     <string>${platform}</string>
@@ -75,11 +77,13 @@ EOF
 make_framework \
   "$root/target/aarch64-apple-ios/flutter/libdbm_sqlite_flutter.dylib" \
   "$stage/device" \
-  "iPhoneOS"
+  "iPhoneOS" \
+  "13.0"
 make_framework \
   "$root/target/aarch64-apple-ios-sim/flutter/libdbm_sqlite_flutter.dylib" \
   "$stage/simulator" \
-  "iPhoneSimulator"
+  "iPhoneSimulator" \
+  "14.0"
 
 rm -rf "$stage/DbmSqlite.xcframework"
 xcodebuild -create-xcframework \

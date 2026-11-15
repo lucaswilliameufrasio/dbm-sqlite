@@ -9,7 +9,7 @@ the native library. Checksums published with the package are in
 `checksums.sha256`.
 
 Flutter desktop, Flutter web, Expo, and React Native are not part of this
-package. The iOS binary is arm64 device and arm64 simulator.
+package. The iOS binary is arm64 device (iOS 13) and arm64 simulator (iOS 14).
 
 ```yaml
 dependencies:

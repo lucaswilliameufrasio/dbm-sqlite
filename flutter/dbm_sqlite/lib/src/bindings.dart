@@ -20,11 +20,13 @@ final class DbmBindings {
         execute = library.lookupFunction<_ExecuteNative, _Execute>(
           'dbm_sqlite_execute',
         ),
-        query = library.lookupFunction<_QueryNative, _Query>('dbm_sqlite_query'),
+        query =
+            library.lookupFunction<_QueryNative, _Query>('dbm_sqlite_query'),
         doctor = library.lookupFunction<_DoctorNative, _Doctor>(
           'dbm_sqlite_doctor',
         ),
-        close = library.lookupFunction<_CloseNative, _Close>('dbm_sqlite_close'),
+        close =
+            library.lookupFunction<_CloseNative, _Close>('dbm_sqlite_close'),
         free = library.lookupFunction<_FreeNative, _Free>('dbm_sqlite_free');
 
   final _Open open;

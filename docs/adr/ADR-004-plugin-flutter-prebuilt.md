@@ -31,8 +31,9 @@ não precisa mudar essa API.
   parte do pacote. O Gradle só empacota `jniLibs`. O podspec só aponta o
   XCFramework. Nenhum dos dois chama o Cargo.
 - Android leva `libdbm_sqlite.so` em `arm64-v8a`, `armeabi-v7a` e `x86_64`.
-  iOS leva um XCFramework dinâmico com device `arm64` e simulador `arm64`.
-  Simulador Intel, desktop e web ficam de fora.
+  iOS leva um XCFramework dinâmico com device `arm64` (iOS 13) e simulador
+  `arm64` (iOS 14, mínimo dessa arquitetura). Simulador Intel, desktop e web
+  ficam de fora.
 - O XCFramework é produzido no runner `macos-latest`, porque a máquina de
   desenvolvimento não tem SDK da Apple. O artifact do Actions só transporta
   esse produto até o commit que o vende no pacote. O app não baixa o artifact.

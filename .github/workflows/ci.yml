@@ -37,10 +37,8 @@ jobs:
       - name: Build
         run: cargo build --workspace --all-features --locked
 
-      # Android libraries are in the package. The iOS XCFramework arrives in a
-      # later commit, so this job allows that gap until checksums list it.
       - name: Check vendored Flutter libraries
-        run: DBM_SQLITE_IOS_PENDING=1 bash tools/check-flutter-plugin.sh
+        run: bash tools/check-flutter-plugin.sh
 
   ios-xcframework:
     name: Build the iOS XCFramework
