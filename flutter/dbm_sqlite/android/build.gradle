@@ -1,0 +1,40 @@
+group = "io.github.lucaswilliameufrasio.dbm_sqlite"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // Same Android Gradle Plugin as the Flutter 3.50 app template.
+        // This project does not compile native code. Gradle packages jniLibs.
+        classpath("com.android.tools.build:gradle:9.3.1")
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: "com.android.library"
+
+android {
+    namespace = "io.github.lucaswilliameufrasio.dbm_sqlite"
+
+    // The Flutter app supplies the SDK it already uses.
+    compileSdk = flutter.compileSdkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        minSdk = 21
+    }
+}

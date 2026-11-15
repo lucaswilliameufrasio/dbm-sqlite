@@ -45,6 +45,14 @@ execution state. It leaves out the path, the SQL text, table names, and rows
 from application tables. Attach `text` to a crash report. A missing file is
 not created.
 
+## Flutter
+
+The plugin in `flutter/dbm_sqlite` vendors Android shared libraries and an iOS
+XCFramework. `flutter pub get` downloads those files from this repository.
+The app build does not run Cargo. SQL stays in the app and is applied on
+open. Checksums are in `flutter/dbm_sqlite/checksums.sha256`. Desktop, web,
+Expo, and React Native are outside this package.
+
 ## Checks
 
 ```sh

@@ -1,0 +1,3 @@
+64ac169767f51b7a8ed138bb9006a0f8d8ac52902a92414175541c641330a003  android/src/main/jniLibs/arm64-v8a/libdbm_sqlite.so
+f4cac7abebe2a9e9b9bdf5bd8f6996f8cea15939c62dce4441f23e9e69ea492a  android/src/main/jniLibs/armeabi-v7a/libdbm_sqlite.so
+3dbc61c222ae6558b2aa28544c4201b1d57311f3fd3545dd4be1c643ffe5ed1e  android/src/main/jniLibs/x86_64/libdbm_sqlite.so

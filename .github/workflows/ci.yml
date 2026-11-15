@@ -36,3 +36,40 @@ jobs:
 
       - name: Build
         run: cargo build --workspace --all-features --locked
+
+      # Android libraries are in the package. The iOS XCFramework arrives in a
+      # later commit, so this job allows that gap until checksums list it.
+      - name: Check vendored Flutter libraries
+        run: DBM_SQLITE_IOS_PENDING=1 bash tools/check-flutter-plugin.sh
+
+  ios-xcframework:
+    name: Build the iOS XCFramework
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      # Revalidated against the canonical upstream release on 2026-11-15:
+      # https://github.com/actions/checkout/releases/tag/v7.0.1
+      # The tag points at commit 3d3c42e5aac5ba805825da76410c181273ba90b1.
+      # The GitHub advisory API listed no advisory that affects actions/checkout.
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal
+
+      - name: Assemble the XCFramework
+        run: bash tools/assemble-ios-xcframework.sh
+
+      # Transport for the maintainer commit. The Flutter app does not download this artifact.
+      # Revalidated on 2026-11-15: actions/upload-artifact v7.0.2 is the latest stable
+      # release, and the tag points at cf430e030ddbb5b0abf93d22962f4752f3646cd9.
+      # The GitHub advisory API listed no advisory that affects actions/upload-artifact.
+      - name: Upload the XCFramework
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DbmSqlite.xcframework
+          path: target/ios-xcframework/DbmSqlite.xcframework
+          if-no-files-found: error
+          retention-days: 7

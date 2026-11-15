@@ -66,6 +66,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dbm-sqlite-flutter"
+version = "0.1.0"
+dependencies = [
+ "dbm-sqlite",
+ "rusqlite",
+]
+
+[[package]]
 name = "digest"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

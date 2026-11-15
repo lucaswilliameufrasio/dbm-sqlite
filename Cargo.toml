@@ -22,3 +22,14 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 all = "warn"
+
+[workspace]
+members = [".", "crates/dbm-sqlite-flutter"]
+resolver = "3"
+
+[profile.flutter]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

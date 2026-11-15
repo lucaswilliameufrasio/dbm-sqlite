@@ -1,0 +1,24 @@
+[package]
+name = "dbm-sqlite-flutter"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+description = "C ABI that lets Flutter open dbm-sqlite without compiling Rust"
+repository = "https://github.com/lucaswilliameufrasio/dbm-sqlite"
+publish = false
+
+[lib]
+name = "dbm_sqlite_flutter"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
+dbm-sqlite = { path = "../.." }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+
+[dev-dependencies]
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+
+[lints.clippy]
+all = "warn"
