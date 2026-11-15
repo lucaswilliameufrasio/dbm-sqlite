@@ -1,8 +1,10 @@
 # dbm-sqlite
 
 Synchronous SQLite library for application cores. It does not depend on
-`database-migrator`. Version 0.1.0 opens a database file on the calling thread.
-The migration journal is a later version.
+`database-migrator`. Version 0.1.0 opens a database file on the calling thread
+and applies pending timestamped SQL. The journal records each version, the
+SHA-256 of its exact SQL bytes, and whether that execution is `started`,
+`applied`, or `failed`.
 
 Authoring stays in the `dbm` binary of
 [database-migrator](https://github.com/lucaswilliameufrasio/database-migrator).
@@ -14,12 +16,19 @@ Requires Rust 1.89 or newer. The repository toolchain is 1.99.1. SQLite is
 bundled.
 
 ```rust
-let database = dbm_sqlite::Database::open(path)?;
+let migrations = [dbm_sqlite::Migration {
+    version: "20261115000000000000",
+    sql: "CREATE TABLE note (id INTEGER PRIMARY KEY);",
+}];
+let database = dbm_sqlite::Database::open(path, &migrations)?;
 let connection = database.connection();
 ```
 
 `open` creates the file when it is missing and refuses to follow a symlink.
-SQL runs on `connection` in the calling thread.
+It reads the journal before migration SQL. A checksum mismatch or an unknown
+execution stops the open, and an existing file is left in place. SQL after
+that runs on `connection` in the calling thread. Shipped applications move
+forward; this version has no down migration.
 
 ## Checks
 
