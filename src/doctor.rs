@@ -804,6 +804,7 @@ mod tests {
         let database = Database::open(&path, &migrations).expect("apply both");
         database
             .connection()
+            .expect("owner")
             .execute(
                 "UPDATE dbm_sqlite_journal SET state = 'started' WHERE version = ?1",
                 [VERSION_ONE],

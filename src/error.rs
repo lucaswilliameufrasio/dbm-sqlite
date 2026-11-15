@@ -53,6 +53,12 @@ pub enum ErrorKind {
         version: String,
         source: rusqlite::Error,
     },
+    /// This process or another already owns the file. This open did not write.
+    Owned,
+    /// [`Database::call`](crate::Database::call) found no live owner.
+    NoOwner,
+    /// The owner stopped while SQL was running. This owner accepts no further SQL.
+    OwnerInterrupted,
 }
 
 /// The applied checksum and the checksum of the SQL passed to open.
@@ -215,6 +221,24 @@ impl fmt::Display for Error {
                 write!(
                     formatter,
                     "migration {version} failed at {path}: {source}; the migration transaction was rolled back"
+                )
+            }
+            ErrorKind::Owned => {
+                write!(
+                    formatter,
+                    "database at {path} already has a connection owner; this open did not write"
+                )
+            }
+            ErrorKind::NoOwner => {
+                write!(
+                    formatter,
+                    "database at {path} has no connection owner; the file was left unchanged"
+                )
+            }
+            ErrorKind::OwnerInterrupted => {
+                write!(
+                    formatter,
+                    "connection owner for {path} stopped during SQL; further use of this owner is blocked"
                 )
             }
         }

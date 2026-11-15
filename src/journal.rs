@@ -356,7 +356,7 @@ fn find_migration<'a>(catalog: &'a Catalog, version: &str) -> Option<&'a Prepare
         .find(|migration| migration.version == version)
 }
 
-fn ensure_parent_exists(path: &Path) -> Result<(), ErrorKind> {
+pub(crate) fn ensure_parent_exists(path: &Path) -> Result<(), ErrorKind> {
     let Some(parent) = path.parent() else {
         return Ok(());
     };

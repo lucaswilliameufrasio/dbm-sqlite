@@ -21,14 +21,16 @@ let migrations = [dbm_sqlite::Migration {
     sql: "CREATE TABLE note (id INTEGER PRIMARY KEY);",
 }];
 let database = dbm_sqlite::Database::open(path, &migrations)?;
-let connection = database.connection();
+let connection = database.connection()?;
 ```
 
 `open` creates the file when it is missing and refuses to follow a symlink.
 It reads the journal before migration SQL. A checksum mismatch or an unknown
-execution stops the open, and an existing file is left in place. SQL after
-that runs on `connection` in the calling thread. Shipped applications move
-forward; this version has no down migration.
+execution stops the open, and an existing file is left in place. The returned
+value owns the only writable connection. A second `open` of that file fails
+and does not write. A worker asks the owner with `Database::call(path, ...)`.
+SQL runs on the calling thread while that call holds the connection. Shipped
+applications move forward; this version has no down migration.
 
 ## Read a diagnosis
 

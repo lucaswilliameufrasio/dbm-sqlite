@@ -4,19 +4,21 @@
 //! the local journal before it writes migration SQL. An applied version keeps
 //! its checksum. An unknown execution blocks writes. A failure leaves an
 //! existing database file in place. [`doctor`] reads that file and returns a
-//! short report that can be attached to a crash report.
+//! short report that can be attached to a crash report. [`Database`] owns the
+//! only writable connection: a worker asks that owner instead of opening the
+//! file again.
 
 mod checksum;
 mod doctor;
 mod error;
 mod guard;
 mod journal;
+mod owner;
 mod version;
-
-use std::path::Path;
 
 pub use doctor::{DoctorReport, FileStatus, Finding, JournalHead, doctor};
 pub use error::{ChecksumMismatch, Error, ErrorKind, UnknownExecution};
+pub use owner::{ConnectionGuard, Database};
 
 /// One timestamped SQL migration.
 ///
@@ -27,70 +29,6 @@ pub use error::{ChecksumMismatch, Error, ErrorKind, UnknownExecution};
 pub struct Migration<'a> {
     pub version: &'a str,
     pub sql: &'a str,
-}
-
-/// An open SQLite file owned by this value.
-///
-/// Dropping the value closes the file. SQL runs through [`Database::connection`]
-/// on the calling thread.
-#[derive(Debug)]
-#[must_use = "dropping the database closes the file"]
-pub struct Database {
-    connection: rusqlite::Connection,
-}
-
-impl Database {
-    /// Opens a SQLite file and applies pending migrations before returning it.
-    ///
-    /// When `path` is missing, the file is created. A symlink is refused. The
-    /// journal is read before migration SQL. A checksum mismatch, a missing
-    /// applied migration, or an unknown execution returns an error without
-    /// writing. Migration SQL that fails is rolled back; earlier applied
-    /// migrations stay in the file.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let path = std::env::temp_dir().join(format!(
-    ///     "dbm-sqlite-doc-{}",
-    ///     std::process::id()
-    /// ));
-    /// let _ = std::fs::remove_file(&path);
-    /// let migrations = [dbm_sqlite::Migration {
-    ///     version: "20261115000000000000",
-    ///     sql: "CREATE TABLE note (id INTEGER PRIMARY KEY);",
-    /// }];
-    /// let database = dbm_sqlite::Database::open(&path, &migrations)?;
-    /// let count: i64 = database
-    ///     .connection()
-    ///     .query_row("SELECT COUNT(*) FROM note", [], |row| row.get(0))
-    ///     .expect("count notes");
-    /// assert_eq!(count, 0);
-    /// drop(database);
-    /// std::fs::remove_file(&path).expect("remove doc database");
-    /// # Ok::<(), dbm_sqlite::Error>(())
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the path cannot be opened, the journal does not
-    /// match `migrations`, or a migration fails. The [`Error`] display includes
-    /// a checksum mismatch and an unknown execution. A missing parent
-    /// directory, a symlink, and a directory path fail without creating a
-    /// database file.
-    pub fn open(path: impl AsRef<Path>, migrations: &[Migration<'_>]) -> Result<Self, Error> {
-        let path = path.as_ref();
-        let connection = journal::open_database(path, migrations)?;
-        Ok(Self { connection })
-    }
-
-    /// Borrows the open connection.
-    ///
-    /// The caller runs SQL. This crate does not provide a query builder.
-    #[must_use]
-    pub fn connection(&self) -> &rusqlite::Connection {
-        &self.connection
-    }
 }
 
 #[cfg(test)]
@@ -188,6 +126,7 @@ mod tests {
         let database = Database::open(&path, &migrations).expect("create database");
         let inserted: i64 = database
             .connection()
+            .expect("owner")
             .query_row("SELECT COUNT(*) FROM note", [], |row| row.get(0))
             .expect("count notes");
         assert_eq!(inserted, 1);
@@ -196,6 +135,7 @@ mod tests {
         let reopened = Database::open(&path, &migrations).expect("reopen database");
         let inserted: i64 = reopened
             .connection()
+            .expect("owner")
             .query_row("SELECT COUNT(*) FROM note", [], |row| row.get(0))
             .expect("count notes again");
         assert_eq!(inserted, 1);
@@ -216,6 +156,7 @@ mod tests {
         let database = Database::open(&path, &migrations).expect("apply in order");
         let id: i64 = database
             .connection()
+            .expect("owner")
             .query_row("SELECT id FROM note", [], |row| row.get(0))
             .expect("read note");
         assert_eq!(id, 2);
@@ -261,6 +202,7 @@ mod tests {
         let database = Database::open(&path, &migrations).expect("apply");
         database
             .connection()
+            .expect("owner")
             .execute(
                 "UPDATE dbm_sqlite_journal SET state = 'started' WHERE version = ?1",
                 [VERSION_ONE],
@@ -335,6 +277,7 @@ mod tests {
         let database = Database::open(&path, &fixed).expect("retry failed migration");
         let id: i64 = database
             .connection()
+            .expect("owner")
             .query_row("SELECT id FROM added", [], |row| row.get(0))
             .expect("added row");
         assert_eq!(id, 2);
@@ -465,6 +408,7 @@ mod tests {
         let database = Database::open(&target, &[]).expect("open target path");
         let count: i64 = database
             .connection()
+            .expect("owner")
             .query_row("SELECT COUNT(*) FROM dbm_sqlite_journal", [], |row| {
                 row.get(0)
             })
