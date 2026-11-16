@@ -10,6 +10,8 @@ the native library. Checksums published with the package are in
 
 Flutter desktop, Flutter web, Expo, and React Native are not part of this
 package. The iOS binary is arm64 device (iOS 13) and arm64 simulator (iOS 14).
+`example/` is a local expense ledger. Its assets are the up SQL, applied on
+open.
 
 ```yaml
 dependencies:

@@ -52,6 +52,7 @@ XCFramework. `flutter pub get` downloads those files from this repository.
 The app build does not run Cargo. SQL stays in the app and is applied on
 open. Checksums are in `flutter/dbm_sqlite/checksums.sha256`. Desktop, web,
 Expo, and React Native are outside this package.
+`flutter/dbm_sqlite/example` is the same expense ledger on Android and iOS.
 
 ## Checks
 
