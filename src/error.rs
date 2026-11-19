@@ -59,6 +59,10 @@ pub enum ErrorKind {
     NoOwner,
     /// The owner stopped while SQL was running. This owner accepts no further SQL.
     OwnerInterrupted,
+    /// Encryption key is empty or contains a NUL byte.
+    InvalidEncryptionKey,
+    /// SQLCipher is unavailable or the encryption key could not be applied.
+    EncryptionSetup,
 }
 
 /// The applied checksum and the checksum of the SQL passed to open.
@@ -240,6 +244,12 @@ impl fmt::Display for Error {
                     formatter,
                     "connection owner for {path} stopped during SQL; further use of this owner is blocked"
                 )
+            }
+            ErrorKind::InvalidEncryptionKey => {
+                write!(formatter, "encryption key is empty or invalid")
+            }
+            ErrorKind::EncryptionSetup => {
+                write!(formatter, "SQLCipher setup failed")
             }
         }
     }

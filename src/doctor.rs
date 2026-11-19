@@ -46,6 +46,8 @@ pub enum Finding {
     UnrecognizedFile,
     /// The bytes are not a SQLite database.
     NotADatabase,
+    /// A keyed file could not be read: the key may be wrong or the file invalid.
+    EncryptedUnreadable,
     /// `dbm_sqlite_journal` exists and its rows could not be read.
     JournalUnreadable,
     /// An applied version was presented again with different SQL bytes.
@@ -234,6 +236,7 @@ impl std::fmt::Display for Finding {
             }
             Self::UnrecognizedFile => write!(formatter, "unrecognized file"),
             Self::NotADatabase => write!(formatter, "not a database"),
+            Self::EncryptedUnreadable => write!(formatter, "encrypted file unreadable"),
             Self::JournalUnreadable => write!(formatter, "journal unreadable"),
             Self::ChecksumMismatch {
                 version,
@@ -306,7 +309,44 @@ pub fn doctor(
     app_version: &str,
     migrations: &[Migration<'_>],
 ) -> DoctorReport {
-    let path = path.as_ref();
+    doctor_inner(path.as_ref(), app_version, migrations, None)
+}
+
+/// Diagnoses an encrypted database without applying migrations.
+///
+/// A wrong key and an invalid encrypted file are deliberately reported alike.
+/// Do not put secrets in `app_version`. The key is not stored in the report.
+///
+/// # Errors
+///
+/// Rejects an empty key or a key containing NUL without opening the path.
+#[cfg(feature = "sqlcipher")]
+pub fn doctor_encrypted(
+    path: impl AsRef<Path>,
+    app_version: &str,
+    migrations: &[Migration<'_>],
+    key: &str,
+) -> Result<DoctorReport, crate::Error> {
+    if key.is_empty() || key.contains('\0') {
+        return Err(crate::Error::new(
+            path.as_ref(),
+            ErrorKind::InvalidEncryptionKey,
+        ));
+    }
+    Ok(doctor_inner(
+        path.as_ref(),
+        app_version,
+        migrations,
+        Some(key),
+    ))
+}
+
+fn doctor_inner(
+    path: &Path,
+    app_version: &str,
+    migrations: &[Migration<'_>],
+    key: Option<&str>,
+) -> DoctorReport {
     let mut report = DoctorReport::blank(app_version);
     let catalog = match journal::prepare(migrations) {
         Ok(catalog) => Some(catalog),
@@ -322,7 +362,7 @@ pub fn doctor(
         Ok(metadata) if metadata.is_dir() => {
             report.file = FileStatus::Directory;
         }
-        Ok(_) => inspect_file(&mut report, path, catalog.as_ref()),
+        Ok(_) => inspect_file(&mut report, path, catalog.as_ref(), key),
         Err(source) if source.kind() == io::ErrorKind::NotFound => {
             report.file = FileStatus::Missing;
             if let Some(catalog) = catalog.as_ref() {
@@ -336,13 +376,22 @@ pub fn doctor(
     report
 }
 
-fn inspect_file(report: &mut DoctorReport, path: &Path, catalog: Option<&Catalog>) {
-    let connection = match journal::open_readonly(path) {
+fn inspect_file(
+    report: &mut DoctorReport,
+    path: &Path,
+    catalog: Option<&Catalog>,
+    key: Option<&str>,
+) {
+    let connection = match journal::open_readonly_with_key(path, key) {
         Ok(connection) => connection,
         Err(kind) => {
             if open_is_not_a_database(&kind) {
                 report.file = FileStatus::Present;
-                report.findings.push(Finding::NotADatabase);
+                if key.is_some() {
+                    report.findings.push(Finding::EncryptedUnreadable);
+                } else {
+                    report.findings.push(Finding::NotADatabase);
+                }
             } else {
                 report.file = FileStatus::Unreadable;
             }
@@ -354,7 +403,11 @@ fn inspect_file(report: &mut DoctorReport, path: &Path, catalog: Option<&Catalog
         Ok(names) => names,
         Err(source) => {
             if source.sqlite_error_code() == Some(rusqlite::ErrorCode::NotADatabase) {
-                report.findings.push(Finding::NotADatabase);
+                if key.is_some() {
+                    report.findings.push(Finding::EncryptedUnreadable);
+                } else {
+                    report.findings.push(Finding::NotADatabase);
+                }
             } else {
                 report.file = FileStatus::Unreadable;
             }

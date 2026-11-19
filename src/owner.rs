@@ -169,7 +169,36 @@ impl Database {
     /// and an unknown execution. A missing parent directory, a symlink, and a
     /// directory path fail without creating a database file.
     pub fn open(path: impl AsRef<Path>, migrations: &[Migration<'_>]) -> Result<Self, Error> {
-        let path = path.as_ref();
+        Self::open_inner(path.as_ref(), migrations, None)
+    }
+
+    /// Opens a SQLCipher file with a caller-supplied passphrase.
+    ///
+    /// This does not convert an existing plaintext database, store the key, or
+    /// rotate it. The caller owns the key and its lifetime. The key is applied
+    /// independently to every connection before the journal is read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an empty or NUL-containing key, an unavailable
+    /// SQLCipher engine, an incorrect key, or any normal opening failure.
+    #[cfg(feature = "sqlcipher")]
+    pub fn open_encrypted(
+        path: impl AsRef<Path>,
+        migrations: &[Migration<'_>],
+        key: &str,
+    ) -> Result<Self, Error> {
+        if key.is_empty() || key.contains('\0') {
+            return Err(Error::new(path.as_ref(), ErrorKind::InvalidEncryptionKey));
+        }
+        Self::open_inner(path.as_ref(), migrations, Some(key))
+    }
+
+    fn open_inner(
+        path: &Path,
+        migrations: &[Migration<'_>],
+        encryption_key: Option<&str>,
+    ) -> Result<Self, Error> {
         journal::prepare(migrations).map_err(|kind| Error::new(path, kind))?;
         match fs::symlink_metadata(path) {
             Ok(metadata) if metadata.file_type().is_symlink() => {
@@ -207,7 +236,7 @@ impl Database {
 
         let lock_path = lock_path(&key);
         let lock_file = acquire_lock(path, &lock_path)?;
-        let connection = open_database(path, migrations)?;
+        let connection = open_database(path, migrations, encryption_key)?;
         let owner = Arc::new(Owner {
             key: key.clone(),
             live: Mutex::new(Live {

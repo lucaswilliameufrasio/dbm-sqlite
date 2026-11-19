@@ -14,7 +14,12 @@ done < <(
     printf '%s\n' \
       android/src/main/jniLibs/arm64-v8a/libdbm_sqlite.so \
       android/src/main/jniLibs/armeabi-v7a/libdbm_sqlite.so \
-      android/src/main/jniLibs/x86_64/libdbm_sqlite.so
+      android/src/main/jniLibs/x86_64/libdbm_sqlite.so \
+      android/src/main/jniLibs/arm64-v8a/libdbm_sqlite_cipher.so \
+      android/src/main/jniLibs/armeabi-v7a/libdbm_sqlite_cipher.so \
+      android/src/main/jniLibs/x86_64/libdbm_sqlite_cipher.so \
+      linux/lib/x86_64/libdbm_sqlite_flutter.so \
+      linux/lib/x86_64/libdbm_sqlite_cipher.so
     if [[ -d ios/Frameworks/DbmSqlite.xcframework ]]; then
       find ios/Frameworks/DbmSqlite.xcframework -type f | sort
     fi

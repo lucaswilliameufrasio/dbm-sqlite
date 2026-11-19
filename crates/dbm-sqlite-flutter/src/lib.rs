@@ -57,6 +57,45 @@ pub unsafe extern "C" fn dbm_sqlite_open(
     })
 }
 
+/// Opens an encrypted database; available only with the `sqlcipher` feature.
+///
+/// # Safety
+///
+/// `path` is NUL-terminated UTF-8. `key` and `migrations` point to readable
+/// buffers of the specified lengths. `out_handle` is writable; `err` is null
+/// or writable for `err_len` bytes. Key bytes must remain valid for the call.
+#[cfg(feature = "sqlcipher")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dbm_sqlite_open_encrypted(
+    path: *const c_char,
+    key: *const u8,
+    key_len: usize,
+    migrations: *const u8,
+    migrations_len: usize,
+    out_handle: *mut u64,
+    err: *mut c_char,
+    err_len: usize,
+) -> i32 {
+    guard(err, err_len, || {
+        if out_handle.is_null() {
+            return Err(invalid("handle output is null"));
+        }
+        unsafe { *out_handle = 0 };
+        let key = std::str::from_utf8(bytes_from(key, key_len)?)
+            .map_err(|_| invalid("key is not utf-8"))?;
+        let path = c_str(path)?;
+        let parsed =
+            wire::migrations_from(bytes_from(migrations, migrations_len)?).map_err(invalid)?;
+        let refs = wire::migration_refs(&parsed);
+        let resolved = path::resolved_database_path(path).map_err(|_| failed("invalid path"))?;
+        let database =
+            dbm_sqlite::Database::open_encrypted(&resolved, &refs, key).map_err(encrypted_error)?;
+        let id = store::insert(database).map_err(|_| failed("could not store owner"))?;
+        unsafe { *out_handle = id };
+        Ok(())
+    })
+}
+
 /// Runs one statement that does not return rows.
 ///
 /// # Safety
@@ -185,6 +224,49 @@ pub unsafe extern "C" fn dbm_sqlite_doctor(
     })
 }
 
+/// Reads an encrypted diagnosis; available only with `sqlcipher`.
+///
+/// # Safety
+///
+/// `path` and `app_version` are NUL-terminated UTF-8 strings. `key` and
+/// `migrations` point to readable buffers of the specified lengths. `out_text`
+/// is writable; `err` is null or writable for `err_len` bytes.
+#[cfg(feature = "sqlcipher")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dbm_sqlite_doctor_encrypted(
+    path: *const c_char,
+    app_version: *const c_char,
+    key: *const u8,
+    key_len: usize,
+    migrations: *const u8,
+    migrations_len: usize,
+    out_text: *mut *mut c_char,
+    err: *mut c_char,
+    err_len: usize,
+) -> i32 {
+    guard(err, err_len, || {
+        if out_text.is_null() {
+            return Err(invalid("doctor output is null"));
+        }
+        unsafe { *out_text = ptr::null_mut() };
+        let key = std::str::from_utf8(bytes_from(key, key_len)?)
+            .map_err(|_| invalid("key is not utf-8"))?;
+        let path = c_str(path)?;
+        let app_version = c_str(app_version)?;
+        let parsed =
+            wire::migrations_from(bytes_from(migrations, migrations_len)?).map_err(invalid)?;
+        let refs = wire::migration_refs(&parsed);
+        let report_path = match path::resolved_database_path(path) {
+            Ok(resolved) => resolved,
+            Err(_) => std::path::PathBuf::from(path),
+        };
+        let report = dbm_sqlite::doctor_encrypted(&report_path, app_version, &refs, key)
+            .map_err(encrypted_error)?;
+        unsafe { *out_text = owned_c_string(report.to_string())? };
+        Ok(())
+    })
+}
+
 /// Drops the owner for `handle`.
 ///
 /// # Safety
@@ -249,6 +331,26 @@ fn open_error(error: dbm_sqlite::Error) -> Status {
     Status {
         code,
         message: error.to_string(),
+    }
+}
+
+#[cfg(feature = "sqlcipher")]
+fn encrypted_error(error: dbm_sqlite::Error) -> Status {
+    let code = match error.kind() {
+        ErrorKind::Owned => DBM_SQLITE_OWNED,
+        ErrorKind::ChecksumMismatch { .. } => DBM_SQLITE_CHECKSUM_MISMATCH,
+        ErrorKind::UnknownExecution { .. } => DBM_SQLITE_UNKNOWN_EXECUTION,
+        ErrorKind::InvalidEncryptionKey
+        | ErrorKind::InvalidVersion { .. }
+        | ErrorKind::DuplicateVersion { .. }
+        | ErrorKind::EmptySql { .. }
+        | ErrorKind::InvalidSql { .. }
+        | ErrorKind::UnsafeSql { .. } => DBM_SQLITE_INVALID,
+        _ => DBM_SQLITE_FAILED,
+    };
+    Status {
+        code,
+        message: "encrypted database operation failed".to_string(),
     }
 }
 

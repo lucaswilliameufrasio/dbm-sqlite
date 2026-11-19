@@ -156,6 +156,84 @@ fn query_json(handle: u64, sql: &str) -> Result<String, (i32, String)> {
 const VERSION: &str = "20261115000000000001";
 const CREATE: &str = "CREATE TABLE note (id INTEGER PRIMARY KEY, body TEXT);";
 
+#[cfg(feature = "sqlcipher")]
+#[test]
+fn encrypted_abi_preserves_data_and_reports_without_secrets() {
+    use dbm_sqlite_flutter::{dbm_sqlite_doctor_encrypted, dbm_sqlite_open_encrypted};
+
+    let scratch = Scratch::new();
+    let path = scratch.path.join("private-name.sqlite");
+    let c_path = c_string(path.to_str().expect("path"));
+    let app = c_string("1.0.0");
+    let key = b"test-only-secret";
+    let blob = migration_blob(VERSION, CREATE);
+    let mut handle = 99u64;
+    let mut err = [0u8; 1024];
+    let open = |key: &[u8], handle: &mut u64, err: &mut [u8]| unsafe {
+        dbm_sqlite_open_encrypted(
+            c_path.as_ptr(),
+            key.as_ptr(),
+            key.len(),
+            blob.as_ptr(),
+            blob.len(),
+            handle,
+            err.as_mut_ptr().cast(),
+            err.len(),
+        )
+    };
+
+    assert_eq!(open(b"", &mut handle, &mut err), DBM_SQLITE_INVALID);
+    assert_eq!(handle, 0);
+    assert!(!path.exists());
+    assert_eq!(open(&[0xff], &mut handle, &mut err), DBM_SQLITE_INVALID);
+    assert_eq!(handle, 0);
+    assert_eq!(open(key, &mut handle, &mut err), DBM_SQLITE_OK);
+    execute(handle, "INSERT INTO note (body) VALUES ('private-row');").expect("insert");
+    drop(Opened { handle });
+    let original = fs::read(&path).expect("read encrypted bytes");
+    assert!(!original.starts_with(b"SQLite format 3\0"));
+
+    handle = 99;
+    assert_ne!(
+        open(b"test-only-wrong", &mut handle, &mut err),
+        DBM_SQLITE_OK
+    );
+    assert_eq!(handle, 0);
+    assert!(!read_err(&err).contains("test-only-wrong"));
+    assert_eq!(fs::read(&path).expect("preserved"), original);
+
+    let mut text: *mut c_char = std::ptr::null_mut();
+    let status = unsafe {
+        dbm_sqlite_doctor_encrypted(
+            c_path.as_ptr(),
+            app.as_ptr(),
+            key.as_ptr(),
+            key.len(),
+            blob.as_ptr(),
+            blob.len(),
+            &mut text,
+            err.as_mut_ptr().cast(),
+            err.len(),
+        )
+    };
+    assert_eq!(status, DBM_SQLITE_OK);
+    let report = unsafe { CStr::from_ptr(text) }.to_str().expect("report");
+    assert!(report.contains("applied"));
+    for secret in ["test-only-secret", "private-name", "private-row", CREATE] {
+        assert!(!report.contains(secret));
+    }
+    unsafe { dbm_sqlite_free(text) };
+    assert_eq!(fs::read(&path).expect("doctor is read-only"), original);
+
+    assert_eq!(open(key, &mut handle, &mut err), DBM_SQLITE_OK);
+    let owner = Opened { handle };
+    assert!(
+        query_json(owner.handle, "SELECT body FROM note")
+            .expect("read")
+            .contains("private-row")
+    );
+}
+
 #[test]
 fn open_applies_caller_sql_and_a_second_open_does_not_write() {
     let scratch = Scratch::new();

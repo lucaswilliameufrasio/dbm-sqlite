@@ -16,7 +16,8 @@ const errorBytes = 4096;
 
 final class DbmBindings {
   DbmBindings(DynamicLibrary library)
-      : open = library.lookupFunction<_OpenNative, _Open>('dbm_sqlite_open'),
+      : _library = library,
+        open = library.lookupFunction<_OpenNative, _Open>('dbm_sqlite_open'),
         execute = library.lookupFunction<_ExecuteNative, _Execute>(
           'dbm_sqlite_execute',
         ),
@@ -35,9 +36,34 @@ final class DbmBindings {
   final _Doctor doctor;
   final _Close close;
   final _Free free;
+  final DynamicLibrary _library;
+
+  bool get supportsEncryption {
+    return _library.providesSymbol('dbm_sqlite_open_encrypted') &&
+        _library.providesSymbol('dbm_sqlite_doctor_encrypted');
+  }
+
+  _OpenEncrypted get openEncrypted {
+    if (!supportsEncryption) {
+      throw UnsupportedError('The native library was built without SQLCipher.');
+    }
+    return _library.lookupFunction<_OpenEncryptedNative, _OpenEncrypted>(
+      'dbm_sqlite_open_encrypted',
+    );
+  }
+
+  _DoctorEncrypted get doctorEncrypted {
+    if (!supportsEncryption) {
+      throw UnsupportedError('The native library was built without SQLCipher.');
+    }
+    return _library.lookupFunction<_DoctorEncryptedNative, _DoctorEncrypted>(
+      'dbm_sqlite_doctor_encrypted',
+    );
+  }
 }
 
 DbmBindings? _cached;
+const bool _sqlCipherRequested = bool.fromEnvironment('DBM_SQLITE_SQLCIPHER');
 
 DbmBindings loadBindings() {
   final existing = _cached;
@@ -50,7 +76,14 @@ DbmBindings loadBindings() {
 }
 
 DynamicLibrary _openLibrary() {
+  if (_sqlCipherRequested && !Platform.isLinux && !Platform.isAndroid) {
+    throw UnsupportedError(
+        'The bundled SQLCipher variant is only available on Linux and Android.');
+  }
   if (Platform.isAndroid) {
+    if (_sqlCipherRequested) {
+      return DynamicLibrary.open('libdbm_sqlite_cipher.so');
+    }
     return DynamicLibrary.open('libdbm_sqlite.so');
   }
   if (Platform.isIOS) {
@@ -60,8 +93,14 @@ DynamicLibrary _openLibrary() {
   if (override != null && override.isNotEmpty) {
     return DynamicLibrary.open(override);
   }
+  if (Platform.isLinux) {
+    if (_sqlCipherRequested) {
+      return DynamicLibrary.open('libdbm_sqlite_cipher.so');
+    }
+    return DynamicLibrary.open('libdbm_sqlite_flutter.so');
+  }
   throw UnsupportedError(
-    'dbm_sqlite ships binaries for Android and iOS.',
+    'dbm_sqlite has no bundled library for this platform.',
   );
 }
 
@@ -99,6 +138,27 @@ typedef _Open = int Function(
   Pointer<Uint64> outHandle,
   Pointer<Uint8> err,
   int errLen,
+);
+
+typedef _OpenEncryptedNative = Int32 Function(
+  Pointer<Utf8>,
+  Pointer<Uint8>,
+  IntPtr,
+  Pointer<Uint8>,
+  IntPtr,
+  Pointer<Uint64>,
+  Pointer<Uint8>,
+  IntPtr,
+);
+typedef _OpenEncrypted = int Function(
+  Pointer<Utf8>,
+  Pointer<Uint8>,
+  int,
+  Pointer<Uint8>,
+  int,
+  Pointer<Uint64>,
+  Pointer<Uint8>,
+  int,
 );
 
 typedef _ExecuteNative = Int32 Function(
@@ -156,6 +216,29 @@ typedef _Doctor = int Function(
   Pointer<Pointer<Utf8>> outText,
   Pointer<Uint8> err,
   int errLen,
+);
+
+typedef _DoctorEncryptedNative = Int32 Function(
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Uint8>,
+  IntPtr,
+  Pointer<Uint8>,
+  IntPtr,
+  Pointer<Pointer<Utf8>>,
+  Pointer<Uint8>,
+  IntPtr,
+);
+typedef _DoctorEncrypted = int Function(
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Uint8>,
+  int,
+  Pointer<Uint8>,
+  int,
+  Pointer<Pointer<Utf8>>,
+  Pointer<Uint8>,
+  int,
 );
 
 typedef _CloseNative = Int32 Function(

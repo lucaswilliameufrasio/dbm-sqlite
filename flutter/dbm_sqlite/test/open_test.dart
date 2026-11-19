@@ -7,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('caller sql is applied and a later edit is refused', () {
     final library = Platform.environment['DBM_SQLITE_LIB'];
-    if (library == null || library.isEmpty) {
+    final bundledLinux = Platform.isLinux &&
+        Platform.environment['DBM_SQLITE_TEST_BUNDLED_LINUX'] == '1';
+    if ((library == null || library.isEmpty) && !bundledLinux) {
       markTestSkipped('DBM_SQLITE_LIB is the host cdylib used by this test');
       return;
     }

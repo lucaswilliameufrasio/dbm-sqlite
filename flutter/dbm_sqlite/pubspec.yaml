@@ -1,5 +1,5 @@
 name: dbm_sqlite
-description: Prebuilt SQLite journal for Flutter Android and iOS. SQL stays in the app.
+description: Prebuilt SQLite journal for Flutter. SQL stays in the app.
 version: 0.1.0
 publish_to: none
 
@@ -22,4 +22,6 @@ flutter:
       android:
         ffiPlugin: true
       ios:
+        ffiPlugin: true
+      linux:
         ffiPlugin: true

@@ -16,6 +16,8 @@ mod journal;
 mod owner;
 mod version;
 
+#[cfg(feature = "sqlcipher")]
+pub use doctor::doctor_encrypted;
 pub use doctor::{DoctorReport, FileStatus, Finding, JournalHead, doctor};
 pub use error::{ChecksumMismatch, Error, ErrorKind, UnknownExecution};
 pub use owner::{ConnectionGuard, Database};

@@ -13,8 +13,11 @@ publish = false
 name = "dbm_sqlite"
 path = "src/lib.rs"
 
+[features]
+sqlcipher = ["rusqlite/bundled-sqlcipher-vendored-openssl"]
+
 [dependencies]
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
 sha2 = "0.11.1"
 
 [lints.rust]

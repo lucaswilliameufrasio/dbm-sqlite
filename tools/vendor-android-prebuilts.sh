@@ -23,22 +23,35 @@ export CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS="$page"
 export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS="$page"
 export CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS="$page"
 
-out="$root/flutter/dbm_sqlite/android/src/main/jniLibs"
-cargo ndk \
+plain="$root/target/android-plain-prebuilts"
+cipher="$root/target/android-cipher-prebuilts"
+CARGO_TARGET_DIR="$root/target/android-plain" cargo ndk \
   --target arm64-v8a \
   --target armeabi-v7a \
   --target x86_64 \
-  -o "$out" \
+  -o "$plain" \
   build --locked --profile flutter -p dbm-sqlite-flutter
 
+CARGO_TARGET_DIR="$root/target/android-cipher" cargo ndk \
+  --target arm64-v8a \
+  --target armeabi-v7a \
+  --target x86_64 \
+  -o "$cipher" \
+  build --locked --profile flutter -p dbm-sqlite-flutter --features sqlcipher
+
+out="$root/flutter/dbm_sqlite/android/src/main/jniLibs"
+
 for abi in arm64-v8a armeabi-v7a x86_64; do
-  built="$out/$abi/libdbm_sqlite_flutter.so"
-  dest="$out/$abi/libdbm_sqlite.so"
-  if [[ ! -f "$built" ]]; then
-    echo "cargo-ndk did not write $built" >&2
-    exit 1
-  fi
-  mv "$built" "$dest"
+  for variant in "$plain" "$cipher"; do
+    if [[ ! -f "$variant/$abi/libdbm_sqlite_flutter.so" ]]; then
+      echo "cargo-ndk did not write a library for $abi" >&2
+      exit 1
+    fi
+  done
+done
+for abi in arm64-v8a armeabi-v7a x86_64; do
+  install -m 755 "$plain/$abi/libdbm_sqlite_flutter.so" "$out/$abi/libdbm_sqlite.so"
+  install -m 755 "$cipher/$abi/libdbm_sqlite_flutter.so" "$out/$abi/libdbm_sqlite_cipher.so"
 done
 
 bash "$root/tools/hash-flutter-prebuilts.sh"

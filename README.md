@@ -10,6 +10,50 @@ Authoring stays in the `dbm` binary of
 [database-migrator](https://github.com/lucaswilliameufrasio/database-migrator).
 This crate is not published to crates.io.
 
+## Experimental SQLCipher
+
+The previous `sqlcipher-src 419.0.6` was affected by RUSTSEC-2026-0502.
+The lockfile now uses the patched `420.0.0`; `cargo audit` reported no
+vulnerabilities on 2026-11-18. This is not a complete security review.
+
+The optional Cargo feature `sqlcipher` adds
+`Database::open_encrypted(path, migrations, key)`. The caller supplies and
+protects a nonempty passphrase; the library does not store or rotate it.
+Encryption is not a conversion of a plaintext database. Wrong keys and
+plaintext files are rejected without a plaintext fallback. The ordinary
+`Database::open` continues to open plaintext SQLite.
+
+Cargo features unify across a dependency graph: enabling `sqlcipher` selects
+the bundled SQLCipher engine for all consumers of the same `libsqlite3-sys`
+in the process, including consumers that use plaintext databases. This Rust
+API is experimental. The Rust-only `doctor_encrypted` inspects the journal
+using a caller-supplied key and does not apply migrations. It reports a wrong
+key and an invalid encrypted file alike. SQLite may maintain WAL shared-memory
+sidecars; this is not a byte-preservation guarantee for those sidecars.
+Flutter exposes `DbmDatabase.openEncrypted`, `doctorEncrypted`, and
+`supportsSqlCipher`. They accept caller-owned UTF-8 key bytes. Linux x86_64
+and Android (arm64-v8a, armeabi-v7a and x86_64) include separate SQLite and
+SQLCipher libraries; select SQLCipher when
+building or running the Flutter app with
+`--dart-define=DBM_SQLITE_SQLCIPHER=true`. The selected library is fixed per
+isolate; do not mix variants or transfer handles across differently configured
+isolates. Without the flag, the default library remains SQLite. Even when
+SQLCipher is selected, `open` creates plaintext files: use `openEncrypted`
+for encryption. Missing SQLCipher is an error, never a plaintext fallback.
+iOS binaries do not yet include SQLCipher. Android SQLCipher was exercised on
+an Android 15 x86_64 emulator, not on ARM devices. The Dart API clears its temporary
+native key buffer, not the caller's bytes or other runtime/SQLCipher copies.
+No key custody, rotation, encrypted backup, or
+cross-platform mobile support is provided. See
+[ADR-006](docs/adr/ADR-006-sqlcipher-opt-in.md).
+
+The public connection type now uses `rusqlite 0.43`. Applications depending
+directly on `rusqlite 0.41` must upgrade in coordination with their
+`dbm-sqlite` dependency to avoid conflicting SQLite native libraries.
+The Android and Linux x86_64 Flutter libraries were rebuilt for `0.43`; the
+vendored iOS XCFramework is still from the earlier build and must be rebuilt
+and tested on macOS before distributing it as an updated binary.
+
 ## Open a file
 
 Requires Rust 1.89 or newer. The repository toolchain is 1.99.1. SQLite is
@@ -50,8 +94,12 @@ not created.
 The plugin in `flutter/dbm_sqlite` vendors Android shared libraries and an iOS
 XCFramework. `flutter pub get` downloads those files from this repository.
 The app build does not run Cargo. SQL stays in the app and is applied on
-open. Checksums are in `flutter/dbm_sqlite/checksums.sha256`. Desktop, web,
-Expo, and React Native are outside this package.
+open. Checksums are in `flutter/dbm_sqlite/checksums.sha256`. An experimental
+Linux x86_64 Flutter prebuilts are included; they require glibc 2.34 or newer.
+Maintainers rebuild both with `tools/vendor-linux-prebuilts.sh` inside Debian
+Bookworm. Both are packaged, but only the selected variant is loaded.
+Its native Flutter app journey has not yet been verified. Other desktop
+platforms, web, Expo, and React Native are not supported by this package.
 `flutter/dbm_sqlite/example` is the same expense ledger on Android and iOS.
 
 ## Checks

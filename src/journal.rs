@@ -50,6 +50,7 @@ enum ExistingFile {
 pub(crate) fn open_database(
     path: &Path,
     migrations: &[Migration<'_>],
+    key: Option<&str>,
 ) -> Result<Connection, Error> {
     let catalog = prepare(migrations).map_err(|kind| Error::new(path, kind))?;
     match fs::symlink_metadata(path) {
@@ -57,18 +58,20 @@ pub(crate) fn open_database(
             Err(Error::new(path, ErrorKind::Symlink))
         }
         Ok(metadata) if metadata.is_dir() => Err(Error::new(path, ErrorKind::Directory)),
-        Ok(_) => open_existing(path, &catalog),
-        Err(source) if source.kind() == io::ErrorKind::NotFound => open_new(path, &catalog),
+        Ok(_) => open_existing(path, &catalog, key),
+        Err(source) if source.kind() == io::ErrorKind::NotFound => open_new(path, &catalog, key),
         Err(source) => Err(Error::new(path, ErrorKind::Io(source))),
     }
 }
 
-fn open_new(path: &Path, catalog: &Catalog) -> Result<Connection, Error> {
+fn open_new(path: &Path, catalog: &Catalog, key: Option<&str>) -> Result<Connection, Error> {
     ensure_parent_exists(path).map_err(|kind| Error::new(path, kind))?;
-    let mut connection = match open_writable(path) {
+    let mut connection = match open_writable(path, key) {
         Ok(connection) => connection,
         Err(kind) => {
-            let _ = fs::remove_file(path);
+            if key.is_none() {
+                let _ = fs::remove_file(path);
+            }
             return Err(Error::new(path, kind));
         }
     };
@@ -85,17 +88,17 @@ fn open_new(path: &Path, catalog: &Catalog) -> Result<Connection, Error> {
     }
 }
 
-fn open_existing(path: &Path, catalog: &Catalog) -> Result<Connection, Error> {
-    let existing = inspect(path, catalog).map_err(|kind| Error::new(path, kind))?;
-    let mut connection = open_writable(path).map_err(|kind| Error::new(path, kind))?;
+fn open_existing(path: &Path, catalog: &Catalog, key: Option<&str>) -> Result<Connection, Error> {
+    let existing = inspect(path, catalog, key).map_err(|kind| Error::new(path, kind))?;
+    let mut connection = open_writable(path, key).map_err(|kind| Error::new(path, kind))?;
     if matches!(existing, ExistingFile::Pending) {
         apply(&mut connection, catalog).map_err(|kind| Error::new(path, kind))?;
     }
     Ok(connection)
 }
 
-fn inspect(path: &Path, catalog: &Catalog) -> Result<ExistingFile, ErrorKind> {
-    let connection = open_readonly(path)?;
+fn inspect(path: &Path, catalog: &Catalog, key: Option<&str>) -> Result<ExistingFile, ErrorKind> {
+    let connection = open_readonly_with_key(path, key)?;
     let names = table_names(&connection)?;
     let has_journal = names.iter().any(|name| name == JOURNAL_TABLE);
     if !has_journal {
@@ -373,23 +376,52 @@ pub(crate) fn ensure_parent_exists(path: &Path) -> Result<(), ErrorKind> {
     }
 }
 
-fn open_writable(path: &Path) -> Result<Connection, ErrorKind> {
+fn open_writable(path: &Path, key: Option<&str>) -> Result<Connection, ErrorKind> {
     let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
         | OpenFlags::SQLITE_OPEN_CREATE
         | OpenFlags::SQLITE_OPEN_NO_MUTEX
         | OpenFlags::SQLITE_OPEN_NOFOLLOW;
     match Connection::open_with_flags(path, flags) {
-        Ok(connection) => Ok(connection),
+        Ok(connection) => {
+            apply_key(&connection, key)?;
+            Ok(connection)
+        }
         Err(source) => Err(ErrorKind::Open(source)),
     }
 }
 
+#[cfg(test)]
 pub(crate) fn open_readonly(path: &Path) -> Result<Connection, ErrorKind> {
+    open_readonly_with_key(path, None)
+}
+
+pub(crate) fn open_readonly_with_key(
+    path: &Path,
+    key: Option<&str>,
+) -> Result<Connection, ErrorKind> {
     let flags = OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NOFOLLOW;
     match Connection::open_with_flags(path, flags) {
-        Ok(connection) => Ok(connection),
+        Ok(connection) => {
+            apply_key(&connection, key)?;
+            Ok(connection)
+        }
         Err(source) => Err(ErrorKind::Open(source)),
     }
+}
+
+fn apply_key(connection: &Connection, key: Option<&str>) -> Result<(), ErrorKind> {
+    let Some(key) = key else {
+        return Ok(());
+    };
+    let version: String = connection
+        .pragma_query_one(None, "cipher_version")
+        .map_err(|_| ErrorKind::EncryptionSetup)?;
+    if version.is_empty() {
+        return Err(ErrorKind::EncryptionSetup);
+    }
+    connection
+        .pragma_update(None, "key", key)
+        .map_err(|_| ErrorKind::EncryptionSetup)
 }
 
 pub(crate) fn table_names(connection: &Connection) -> Result<Vec<String>, rusqlite::Error> {
