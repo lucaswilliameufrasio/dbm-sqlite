@@ -10,6 +10,26 @@ fi
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
+variant="${1:-plain}"
+case "$variant" in
+  plain)
+    name=DbmSqlite
+    bundle_id=io.github.lucaswilliameufrasio.dbm-sqlite
+    cargo_features=()
+    stage="$root/target/ios-xcframework"
+    ;;
+  sqlcipher)
+    name=DbmSqliteCipher
+    bundle_id=io.github.lucaswilliameufrasio.dbm-sqlite-cipher
+    cargo_features=(--features sqlcipher)
+    stage="$root/target/ios-xcframework-cipher"
+    ;;
+  *)
+    echo "Usage: bash tools/assemble-ios-xcframework.sh [plain|sqlcipher]" >&2
+    exit 1
+    ;;
+esac
+
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim --toolchain 1.99.1
 
 device_sdk=$(xcrun --sdk iphoneos --show-sdk-path)
@@ -17,10 +37,9 @@ sim_sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
 
 # Device stays on iOS 13. The arm64 simulator does not exist before iOS 14,
 # and rustc raises that slice to 14 even when the deployment target is lower.
-IPHONEOS_DEPLOYMENT_TARGET=13.0 SDKROOT="$device_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios
-IPHONEOS_DEPLOYMENT_TARGET=14.0 SDKROOT="$sim_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios-sim
+IPHONEOS_DEPLOYMENT_TARGET=13.0 SDKROOT="$device_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios "${cargo_features[@]}"
+IPHONEOS_DEPLOYMENT_TARGET=14.0 SDKROOT="$sim_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios-sim "${cargo_features[@]}"
 
-stage="$root/target/ios-xcframework"
 rm -rf "$stage"
 mkdir -p "$stage/include"
 cp "$root/crates/dbm-sqlite-flutter/include/dbm_sqlite.h" "$stage/include/dbm_sqlite.h"
@@ -30,14 +49,14 @@ make_framework() {
   local dest_dir="$2"
   local platform="$3"
   local minimum_os="$4"
-  local fw="$dest_dir/DbmSqlite.framework"
+  local fw="$dest_dir/$name.framework"
   mkdir -p "$fw/Headers" "$fw/Modules"
-  cp "$src_dylib" "$fw/DbmSqlite"
-  install_name_tool -id "@rpath/DbmSqlite.framework/DbmSqlite" "$fw/DbmSqlite"
-  chmod 755 "$fw/DbmSqlite"
+  cp "$src_dylib" "$fw/$name"
+  install_name_tool -id "@rpath/$name.framework/$name" "$fw/$name"
+  chmod 755 "$fw/$name"
   cp "$stage/include/dbm_sqlite.h" "$fw/Headers/dbm_sqlite.h"
-  cat > "$fw/Modules/module.modulemap" <<'EOF'
-framework module DbmSqlite {
+  cat > "$fw/Modules/module.modulemap" <<EOF
+framework module $name {
     header "dbm_sqlite.h"
     export *
 }
@@ -50,13 +69,13 @@ EOF
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>DbmSqlite</string>
+  <string>${name}</string>
   <key>CFBundleIdentifier</key>
-  <string>io.github.lucaswilliameufrasio.dbm-sqlite</string>
+  <string>${bundle_id}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>DbmSqlite</string>
+  <string>${name}</string>
   <key>CFBundlePackageType</key>
   <string>FMWK</string>
   <key>CFBundleShortVersionString</key>
@@ -85,10 +104,9 @@ make_framework \
   "iPhoneSimulator" \
   "14.0"
 
-rm -rf "$stage/DbmSqlite.xcframework"
 xcodebuild -create-xcframework \
-  -framework "$stage/device/DbmSqlite.framework" \
-  -framework "$stage/simulator/DbmSqlite.framework" \
-  -output "$stage/DbmSqlite.xcframework"
+  -framework "$stage/device/$name.framework" \
+  -framework "$stage/simulator/$name.framework" \
+  -output "$stage/$name.xcframework"
 
-echo "wrote $stage/DbmSqlite.xcframework"
+echo "wrote $stage/$name.xcframework"

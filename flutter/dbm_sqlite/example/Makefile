@@ -14,7 +14,7 @@ help:
 	  'make analyze                Analisa o código Dart' \
 	  'make test                   Executa testes locais (Linux: DBM_SQLITE_LIB)' \
 	  'make test-integration DEVICE=<id>  Executa jornada no Android ou iOS' \
-	  'make test-sqlcipher DEVICE=<id>    Testa variante SQLCipher Android' \
+	  'make test-sqlcipher DEVICE=<id>    Testa variante SQLCipher Android/iOS' \
 	  'make test-sqlite-only DEVICE=<id>  Confere que SQLite não cifra por fallback' \
 	  'make build-android          Gera APK debug' \
 	  'make build-ios-simulator    Compila iOS para simulador, sem assinatura' \

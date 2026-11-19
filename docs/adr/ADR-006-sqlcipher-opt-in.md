@@ -76,6 +76,9 @@ chaves exige trabalho e validação próprios antes do uso em produção.
 Os binários Flutter de Android e Linux x86_64 foram recompilados com
 `rusqlite 0.43`; o exemplo passou no emulador Android 15 x86_64. O XCFramework
 iOS ainda é anterior à atualização e deve ser recompilado e validado no macOS.
+Há uma preparação experimental para gerar frameworks iOS separados em
+`docs/ios-validation.md`; montagem, empacotamento e execução ainda não foram
+verificados no Mac e não constituem suporte declarado.
 No Android 15 x86_64, a jornada cifrada passou com abertura, migração, UI,
 diagnóstico, chave errada e preservação; a variante padrão e a jornada SQLite
 também passaram com ambas as bibliotecas empacotadas. As ABIs ARM foram

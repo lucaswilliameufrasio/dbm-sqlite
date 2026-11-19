@@ -76,9 +76,12 @@ DbmBindings loadBindings() {
 }
 
 DynamicLibrary _openLibrary() {
-  if (_sqlCipherRequested && !Platform.isLinux && !Platform.isAndroid) {
+  if (_sqlCipherRequested &&
+      !Platform.isLinux &&
+      !Platform.isAndroid &&
+      !Platform.isIOS) {
     throw UnsupportedError(
-        'The bundled SQLCipher variant is only available on Linux and Android.');
+        'The SQLCipher variant is only available on Linux, Android and iOS.');
   }
   if (Platform.isAndroid) {
     if (_sqlCipherRequested) {
@@ -87,6 +90,9 @@ DynamicLibrary _openLibrary() {
     return DynamicLibrary.open('libdbm_sqlite.so');
   }
   if (Platform.isIOS) {
+    if (_sqlCipherRequested) {
+      return DynamicLibrary.open('DbmSqliteCipher.framework/DbmSqliteCipher');
+    }
     return DynamicLibrary.open('DbmSqlite.framework/DbmSqlite');
   }
   final override = Platform.environment['DBM_SQLITE_LIB'];

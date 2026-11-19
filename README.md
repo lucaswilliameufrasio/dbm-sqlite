@@ -43,6 +43,8 @@ for encryption. Missing SQLCipher is an error, never a plaintext fallback.
 iOS binaries do not yet include SQLCipher. Android SQLCipher was exercised on
 an Android 15 x86_64 emulator, not on ARM devices. The Dart API clears its temporary
 native key buffer, not the caller's bytes or other runtime/SQLCipher copies.
+An unvalidated macOS build and simulator procedure for separate iOS frameworks
+is in [docs/ios-validation.md](docs/ios-validation.md).
 No key custody, rotation, encrypted backup, or
 cross-platform mobile support is provided. See
 [ADR-006](docs/adr/ADR-006-sqlcipher-opt-in.md).

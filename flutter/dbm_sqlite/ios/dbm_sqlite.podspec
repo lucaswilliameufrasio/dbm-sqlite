@@ -8,7 +8,11 @@ Pod::Spec.new do |s|
   s.source           = { :path => '.' }
   s.dependency 'Flutter'
   s.ios.deployment_target = '13.0'
-  s.vendored_frameworks = 'Frameworks/DbmSqlite.xcframework'
+  frameworks = ['Frameworks/DbmSqlite.xcframework']
+  if File.directory?(File.join(__dir__, 'Frameworks/DbmSqliteCipher.xcframework'))
+    frameworks << 'Frameworks/DbmSqliteCipher.xcframework'
+  end
+  s.vendored_frameworks = frameworks
   # The XCFramework has arm64 device and arm64 simulator slices only.
   s.pod_target_xcconfig = {
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386 x86_64'

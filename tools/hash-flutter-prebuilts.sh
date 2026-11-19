@@ -23,6 +23,9 @@ done < <(
     if [[ -d ios/Frameworks/DbmSqlite.xcframework ]]; then
       find ios/Frameworks/DbmSqlite.xcframework -type f | sort
     fi
+    if [[ -d ios/Frameworks/DbmSqliteCipher.xcframework ]]; then
+      find ios/Frameworks/DbmSqliteCipher.xcframework -type f | sort
+    fi
   }
 )
 
