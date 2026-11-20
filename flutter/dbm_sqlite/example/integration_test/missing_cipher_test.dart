@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dbm_sqlite/dbm_sqlite.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:path_provider/path_provider.dart';
+import 'temp_directory.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +14,7 @@ void main() {
   ) async {
     expect(Platform.isIOS, isTrue);
     expect(const bool.fromEnvironment('DBM_SQLITE_SQLCIPHER'), isTrue);
-    final root = await getTemporaryDirectory();
-    final directory = await root.createTemp('dbm-ios-missing-cipher-');
+    final directory = await integrationTemp('dbm-ios-missing-cipher-');
     addTearDown(() async {
       await directory.delete(recursive: true);
     });

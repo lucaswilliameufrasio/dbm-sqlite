@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:local_ledger/ledger.dart';
 import 'package:local_ledger/main.dart';
-import 'package:path_provider/path_provider.dart';
+import 'temp_directory.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +12,7 @@ void main() {
   testWidgets('upgrades an existing file and persists a new expense', (
     tester,
   ) async {
-    final root = await getTemporaryDirectory();
-    final directory = await root.createTemp('dbm-ledger-integration-');
+    final directory = await integrationTemp('dbm-ledger-integration-');
     addTearDown(() async {
       await directory.delete(recursive: true);
     });
@@ -53,8 +52,7 @@ void main() {
   testWidgets('rejects changed migration without losing existing rows', (
     tester,
   ) async {
-    final root = await getTemporaryDirectory();
-    final directory = await root.createTemp('dbm-ledger-checksum-');
+    final directory = await integrationTemp('dbm-ledger-checksum-');
     addTearDown(() async {
       await directory.delete(recursive: true);
     });

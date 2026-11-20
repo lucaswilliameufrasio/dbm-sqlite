@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:local_ledger/ledger.dart';
 import 'package:local_ledger/main.dart';
-import 'package:path_provider/path_provider.dart';
+import 'temp_directory.dart';
 
 const _cipherSelected = bool.fromEnvironment('DBM_SQLITE_SQLCIPHER');
 
@@ -18,8 +18,7 @@ void main() {
   testWidgets('selected native variant never silently falls back', (
     tester,
   ) async {
-    final root = await getTemporaryDirectory();
-    final directory = await root.createTemp('dbm-mobile-cipher-');
+    final directory = await integrationTemp('dbm-mobile-cipher-');
     addTearDown(() async {
       await directory.delete(recursive: true);
     });

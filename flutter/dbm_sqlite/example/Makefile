@@ -4,7 +4,8 @@ DEVICE_FLAG = $(if $(DEVICE),-d $(DEVICE),)
 
 .PHONY: help doctor devices get analyze test test-integration test-sqlcipher \
 	test-sqlite-only build-android \
-	build-ios-simulator build-ios-device build-linux run-android run-ios run-linux
+	build-ios-simulator build-ios-device build-linux build-macos \
+	run-android run-ios run-linux run-macos
 
 help:
 	@printf '%s\n' \
@@ -13,14 +14,16 @@ help:
 	  'make get                    Instala dependências do projeto' \
 	  'make analyze                Analisa o código Dart' \
 	  'make test                   Executa testes locais (Linux: DBM_SQLITE_LIB)' \
-	  'make test-integration DEVICE=<id>  Executa jornada no Android ou iOS' \
-	  'make test-sqlcipher DEVICE=<id>    Testa variante SQLCipher Android/iOS' \
-	  'make test-sqlite-only DEVICE=<id>  Confere que SQLite não cifra por fallback' \
+	  'make test-integration DEVICE=<id>  Executa a jornada no Android, iOS ou macOS' \
+	  'make test-sqlcipher DEVICE=<id>    Testa a variante SQLCipher no Android, iOS ou macOS' \
+	  'make test-sqlite-only DEVICE=<id>  Confere no Android, iOS ou macOS que SQLite não cifra por fallback' \
 	  'make build-android          Gera APK debug' \
 	  'make build-ios-simulator    Compila iOS para simulador, sem assinatura' \
 	  'make build-ios-device       Compila iOS para aparelho, sem assinatura' \
 	  'make build-linux            Compila o app Linux x86_64 experimental' \
 	  'make run-linux              Executa o app Linux experimental' \
+	  'make build-macos            Compila o app macOS arm64 experimental' \
+	  'make run-macos              Executa o app macOS' \
 	  'make run-android DEVICE=<id>  Executa no Android' \
 	  'make run-ios DEVICE=<id>    Executa no iOS'
 
@@ -63,8 +66,14 @@ build-ios-device:
 build-linux:
 	$(FLUTTER) build linux --debug
 
+build-macos:
+	$(FLUTTER) build macos --debug
+
 run-linux:
 	$(FLUTTER) run -d linux
+
+run-macos:
+	$(FLUTTER) run -d macos
 
 run-android run-ios:
 	@test -n "$(DEVICE)" || { printf '%s\n' 'Informe DEVICE=<id> de flutter devices'; exit 1; }

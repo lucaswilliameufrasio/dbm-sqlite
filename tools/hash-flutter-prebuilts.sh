@@ -26,6 +26,12 @@ done < <(
     if [[ -d ios/Frameworks/DbmSqliteCipher.xcframework ]]; then
       find ios/Frameworks/DbmSqliteCipher.xcframework -type f | sort
     fi
+    if [[ -d macos/Frameworks/DbmSqlite.xcframework ]]; then
+      find macos/Frameworks/DbmSqlite.xcframework -type f | sort
+    fi
+    if [[ -d macos/Frameworks/DbmSqliteCipher.xcframework ]]; then
+      find macos/Frameworks/DbmSqliteCipher.xcframework -type f | sort
+    fi
   }
 )
 

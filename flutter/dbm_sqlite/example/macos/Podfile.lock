@@ -1,0 +1,22 @@
+PODS:
+  - dbm_sqlite (0.1.0):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+
+DEPENDENCIES:
+  - dbm_sqlite (from `Flutter/ephemeral/.symlinks/plugins/dbm_sqlite/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+
+EXTERNAL SOURCES:
+  dbm_sqlite:
+    :path: Flutter/ephemeral/.symlinks/plugins/dbm_sqlite/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+
+SPEC CHECKSUMS:
+  dbm_sqlite: 38f20f073f4bbfbd23d95294bf3c58af1ce213ac
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+
+PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
+
+COCOAPODS: 1.16.2

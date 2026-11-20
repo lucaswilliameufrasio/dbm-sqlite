@@ -140,4 +140,5 @@ O `Runner.app` embutiu os dois frameworks arm64, com install names distintos. A
 assinatura era ad hoc, sem team. A evidência de execução são esses testes.
 Compilação e execução no macOS desktop, aparelho físico, assinatura de
 distribuição, custódia de chave, rotação e backup cifrado não fizeram parte
-desta execução.
+desta execução. O desktop macOS arm64 foi exercitado depois, à parte, e está
+na ADR-007.

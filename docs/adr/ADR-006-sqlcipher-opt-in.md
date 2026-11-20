@@ -74,12 +74,17 @@ logs, argumentos de processo ou código de aplicações. O contrato de conversã
 backup, rotação, falhas de energia, plataformas e armazenamento seguro de
 chaves exige trabalho e validação próprios antes do uso em produção.
 
-Os binários Flutter de Android, Linux x86_64 e iOS foram recompilados com
+Os binários Flutter de Android, Linux x86_64, iOS e macOS arm64 foram recompilados com
 `rusqlite 0.43`; o exemplo passou no emulador Android 15 x86_64. No Mac Apple
 Silicon, a montagem dos dois XCFrameworks, o empacotamento e as jornadas no
 simulador iPhone 18 Pro Max (iOS 27.0) passaram. O registro está em
 `docs/ios-validation.md`. Esse registro cobre o simulador. Aparelho físico,
-assinatura, compilação no macOS desktop e uso em produção continuam fora dele.
+assinatura e uso em produção continuam fora dele. O desktop macOS arm64 foi
+compilado depois, no mesmo Mac, e as jornadas do exemplo (ledger, SQLite padrão
+e SQLCipher) passaram com Flutter 3.50.0. O registro está na ADR-007. Não há
+slice Intel e isso não é produção. Em 2026-11-20, a jornada do app Flutter em
+Linux x86_64 passou no host CachyOS com glibc 2.44 e Flutter 3.50.0, sob Xvfb:
+ledger (2), SQLite padrão (1) e SQLCipher (1). Isso não cobre Linux ARM.
 No Android 15 x86_64, a jornada cifrada passou com abertura, migração, UI,
 diagnóstico, chave errada e preservação; a variante padrão e a jornada SQLite
 também passaram com ambas as bibliotecas empacotadas. Em 2026-11-21, no

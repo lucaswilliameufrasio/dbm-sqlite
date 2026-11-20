@@ -1,0 +1,4 @@
+framework module DbmSqliteCipher {
+    header "dbm_sqlite.h"
+    export *
+}
