@@ -56,7 +56,7 @@ bash tools/hash-flutter-prebuilts.sh
 ```
 
 Antes de copiar, confirme que os destinos de backup e SQLCipher não existem;
-não sobrescreva trabalho existente. O backup não deve ser publicado. O podspec
+não sobrescreva trabalho existente. O backup não deve ser publicado; `*.before-ios-rebuild/` está no `.gitignore`. O podspec
 inclui o framework cifrado somente quando presente; selecionar SQLCipher sem
 ele deve falhar ao carregar, nunca abrir SQLite como fallback.
 

@@ -8,3 +8,6 @@ flutter/**/build/
 flutter/**/.flutter-plugins
 flutter/**/.flutter-plugins-dependencies
 flutter/**/pubspec.lock
+
+# Preserved previous iOS XCFramework. Never publish it.
+flutter/dbm_sqlite/ios/Frameworks/*.before-ios-rebuild/
