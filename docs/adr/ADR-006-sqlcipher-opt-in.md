@@ -68,21 +68,25 @@ cobrem arquivo ausente, symlink, chave errada, privacidade do relatório e um
 WAL ativo sem mudanças nos bytes do banco e do WAL. SQLite pode manter
 arquivos auxiliares de memória compartilhada, que não são cobertos por essa
 garantia de bytes. O Dart expõe a API e os binários opt-in Linux x86_64 e
-Android incluem os símbolos. O binário iOS ainda não os inclui. Chaves não devem estar em
+Android e iOS incluem os símbolos cifrados no binário SQLCipher. No iOS esses
+símbolos estão só em `DbmSqliteCipher`. Chaves não devem estar em
 logs, argumentos de processo ou código de aplicações. O contrato de conversão,
 backup, rotação, falhas de energia, plataformas e armazenamento seguro de
 chaves exige trabalho e validação próprios antes do uso em produção.
 
-Os binários Flutter de Android e Linux x86_64 foram recompilados com
-`rusqlite 0.43`; o exemplo passou no emulador Android 15 x86_64. O XCFramework
-iOS ainda é anterior à atualização e deve ser recompilado e validado no macOS.
-Há uma preparação experimental para gerar frameworks iOS separados em
-`docs/ios-validation.md`; montagem, empacotamento e execução ainda não foram
-verificados no Mac e não constituem suporte declarado.
+Os binários Flutter de Android, Linux x86_64 e iOS foram recompilados com
+`rusqlite 0.43`; o exemplo passou no emulador Android 15 x86_64. No Mac Apple
+Silicon, a montagem dos dois XCFrameworks, o empacotamento e as jornadas no
+simulador iPhone 18 Pro Max (iOS 27.0) passaram. O registro está em
+`docs/ios-validation.md`. Esse registro cobre o simulador. Aparelho físico,
+assinatura, compilação no macOS desktop e uso em produção continuam fora dele.
 No Android 15 x86_64, a jornada cifrada passou com abertura, migração, UI,
 diagnóstico, chave errada e preservação; a variante padrão e a jornada SQLite
-também passaram com ambas as bibliotecas empacotadas. As ABIs ARM foram
-compiladas e inspecionadas, mas não executadas.
+também passaram com ambas as bibliotecas empacotadas. Em 2026-11-21, no
+emulador arm64-v8a (Android 15, API 35, página de 4096 bytes), a jornada do
+ledger e a variante padrão passaram. A jornada SQLCipher abriu o arquivo
+cifrado e mostrou o gasto novo; o localizador de texto falhou. `armeabi-v7a`
+e página de 16 KB não foram executados.
 Uma aplicação de cofre gerada pelo Jirau passou oito testes ao apontar para
 este checkout e usar `rusqlite 0.43`; isso não atualiza o commit Git fixado
 nos templates distribuídos. A mudança do pin deve ser coordenada com a

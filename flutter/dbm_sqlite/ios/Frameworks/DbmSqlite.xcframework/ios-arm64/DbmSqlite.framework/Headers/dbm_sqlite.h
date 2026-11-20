@@ -27,6 +27,20 @@ int32_t dbm_sqlite_open(
     char *err,
     size_t err_len);
 
+/* Optional symbols: present only in a library built with the sqlcipher feature.
+ * key is a non-empty UTF-8 passphrase buffer, not NUL-terminated; the caller
+ * retains ownership and must protect and clear it. No plaintext fallback. */
+int32_t dbm_sqlite_open_encrypted(
+    const char *path, const uint8_t *key, size_t key_len,
+    const uint8_t *migrations, size_t migrations_len,
+    uint64_t *out_handle, char *err, size_t err_len);
+
+int32_t dbm_sqlite_doctor_encrypted(
+    const char *path, const char *app_version,
+    const uint8_t *key, size_t key_len,
+    const uint8_t *migrations, size_t migrations_len,
+    char **out_text, char *err, size_t err_len);
+
 int32_t dbm_sqlite_execute(
     uint64_t handle,
     const char *sql,

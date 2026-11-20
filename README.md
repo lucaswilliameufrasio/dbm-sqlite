@@ -40,14 +40,18 @@ isolate; do not mix variants or transfer handles across differently configured
 isolates. Without the flag, the default library remains SQLite. Even when
 SQLCipher is selected, `open` creates plaintext files: use `openEncrypted`
 for encryption. Missing SQLCipher is an error, never a plaintext fallback.
-iOS binaries do not yet include SQLCipher. Android SQLCipher was exercised on
+iOS includes separate SQLite and SQLCipher XCFrameworks. Select SQLCipher with
+the same `--dart-define=DBM_SQLITE_SQLCIPHER=true`. Android SQLCipher was exercised on
 an Android 15 x86_64 emulator and, on 2026-11-21, on an arm64-v8a Android 15
 emulator. The arm64 run passed the ledger and default SQLite journeys. The
 SQLCipher journey opened the encrypted file and showed the new expense on
-screen; its text finder failed. armeabi-v7a was not run. The Dart API clears its temporary
+screen; its text finder failed. armeabi-v7a was not run. On an Apple Silicon Mac, both iOS
+frameworks were rebuilt and the SQLite, SQLCipher, and missing-cipher journeys passed
+on an iPhone 18 Pro Max simulator running iOS 27.0. That run is recorded in
+[docs/ios-validation.md](docs/ios-validation.md). The recorded run is the simulator
+only: a physical device, code signing, a macOS desktop build, and production use
+remain outside it. The Dart API clears its temporary
 native key buffer, not the caller's bytes or other runtime/SQLCipher copies.
-An unvalidated macOS build and simulator procedure for separate iOS frameworks
-is in [docs/ios-validation.md](docs/ios-validation.md).
 No key custody, rotation, encrypted backup, or
 cross-platform mobile support is provided. See
 [ADR-006](docs/adr/ADR-006-sqlcipher-opt-in.md).
@@ -55,9 +59,9 @@ cross-platform mobile support is provided. See
 The public connection type now uses `rusqlite 0.43`. Applications depending
 directly on `rusqlite 0.41` must upgrade in coordination with their
 `dbm-sqlite` dependency to avoid conflicting SQLite native libraries.
-The Android and Linux x86_64 Flutter libraries were rebuilt for `0.43`; the
-vendored iOS XCFramework is still from the earlier build and must be rebuilt
-and tested on macOS before distributing it as an updated binary.
+The Android, Linux x86_64, and iOS Flutter binaries were rebuilt for `0.43`.
+The iOS rebuild and the simulator journeys are recorded in
+[docs/ios-validation.md](docs/ios-validation.md).
 
 ## Open a file
 
@@ -96,8 +100,9 @@ not created.
 
 ## Flutter
 
-The plugin in `flutter/dbm_sqlite` vendors Android shared libraries and an iOS
-XCFramework. `flutter pub get` downloads those files from this repository.
+The plugin in `flutter/dbm_sqlite` vendors Android shared libraries and separate
+iOS XCFrameworks for SQLite and SQLCipher. `flutter pub get` downloads those
+files from this repository.
 The app build does not run Cargo. SQL stays in the app and is applied on
 open. Checksums are in `flutter/dbm_sqlite/checksums.sha256`. An experimental
 Linux x86_64 Flutter prebuilts are included; they require glibc 2.34 or newer.

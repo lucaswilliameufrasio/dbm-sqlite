@@ -37,8 +37,22 @@ sim_sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
 
 # Device stays on iOS 13. The arm64 simulator does not exist before iOS 14,
 # and rustc raises that slice to 14 even when the deployment target is lower.
-IPHONEOS_DEPLOYMENT_TARGET=13.0 SDKROOT="$device_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios "${cargo_features[@]}"
-IPHONEOS_DEPLOYMENT_TARGET=14.0 SDKROOT="$sim_sdk" cargo build --locked --profile flutter -p dbm-sqlite-flutter --target aarch64-apple-ios-sim "${cargo_features[@]}"
+# macOS /bin/bash is 3.2: an empty array under set -u is an unbound variable.
+build_flutter() {
+  local target="$1"
+  local sdk="$2"
+  local deployment="$3"
+  if [ "${#cargo_features[@]}" -eq 0 ]; then
+    IPHONEOS_DEPLOYMENT_TARGET="$deployment" SDKROOT="$sdk" \
+      cargo build --locked --profile flutter -p dbm-sqlite-flutter --target "$target"
+  else
+    IPHONEOS_DEPLOYMENT_TARGET="$deployment" SDKROOT="$sdk" \
+      cargo build --locked --profile flutter -p dbm-sqlite-flutter --target "$target" "${cargo_features[@]}"
+  fi
+}
+
+build_flutter aarch64-apple-ios "$device_sdk" 13.0
+build_flutter aarch64-apple-ios-sim "$sim_sdk" 14.0
 
 rm -rf "$stage"
 mkdir -p "$stage/include"

@@ -1,9 +1,11 @@
 # Preparação e validação iOS no Mac
 
-Este fluxo é experimental e ainda não foi executado. O checkout atual contém o
-XCFramework SQLite anterior à atualização de `rusqlite`; o framework SQLCipher
-não está incluído. Não use este pacote como suporte iOS validado nem em produção
-antes de compilar e testar. Não há conversão de banco, custódia ou rotação de
+Este fluxo é experimental. Ele foi executado uma vez em 2026-11-20 no Mac Apple
+Silicon, com o código Rust de `806d93e26037e1d45c980bead0013abcc139ebfe` e com
+este script de montagem já corrigido para o bash 3.2. Os XCFrameworks vendored
+são a saída dessa execução; o registro está na seção final. O resultado cobre o
+simulador arm64 descrito abaixo. Aparelho físico, assinatura, distribuição e uso
+em produção continuam fora deste registro. Não há conversão de banco, custódia ou rotação de
 chaves. `open` continua sem cifra; use `openEncrypted` para arquivos cifrados.
 
 ## Pré-requisitos
@@ -28,7 +30,9 @@ bash tools/assemble-ios-xcframework.sh plain
 bash tools/assemble-ios-xcframework.sh sqlcipher
 ```
 
-Cada comando remove e recria seu próprio diretório `target/ios-xcframework`
+No macOS, `/bin/bash` 3.2 trata a expansão de um array vazio sob `set -u` como
+variável inexistente. A variante plain não passa features Cargo; o script evita
+essa expansão. Cada comando remove e recria seu próprio diretório `target/ios-xcframework`
 ou `target/ios-xcframework-cipher`, respectivamente; preserve previamente
 qualquer arquivo próprio nesses diretórios. A saída fica nesses diretórios, não
 substitui o pacote automaticamente. Os frameworks têm identificadores, nomes
@@ -93,3 +97,47 @@ aparelho físico, assinatura, distribuição, backups ou segurança criptográfi
 `make build-ios-device` apenas compila sem assinatura. Nenhum destes comandos
 publica o aplicativo; não configure certificados nem faça upload como parte
 deste procedimento.
+
+## Execução registrada
+
+Em 2026-11-20, no Mac Apple Silicon:
+
+- macOS 27.2 (26B123), Xcode 27.2 (27B52), SDKs iphoneos e iphonesimulator 27.2
+- Rust 1.99.1, Flutter 3.50.0, Dart 3.14.0, CocoaPods 1.16.2
+- simulador iPhone 18 Pro Max, iOS 27.0, já iniciado
+- código Rust em `806d93e26037e1d45c980bead0013abcc139ebfe`
+
+`simctl spawn` de `uname` no simulador falhou com `LaunchdSimError 111`, então a
+arquitetura de convidado não foi lida por esse comando. Os quatro executáveis
+inspecionados são arm64.
+
+Montagem, em sequência: `bash tools/assemble-ios-xcframework.sh plain` e
+`bash tools/assemble-ios-xcframework.sh sqlcipher`. As duas concluíram. Cada
+XCFramework tem device arm64 com mínimo iOS 13.0 e simulador arm64 com mínimo
+iOS 14.0, SDK 27.2. `otool -L` mostrou o próprio framework,
+`/usr/lib/libSystem.B.dylib` e `/usr/lib/libiconv.2.dylib`.
+`dbm_sqlite_open_encrypted` e `dbm_sqlite_doctor_encrypted` aparecem só nos dois
+executáveis `DbmSqliteCipher`.
+
+Empacotamento: o framework anterior foi movido para
+`DbmSqlite.xcframework.before-ios-rebuild` e fica fora do Git. As saídas foram
+copiadas para `flutter/dbm_sqlite/ios/Frameworks/` e
+`tools/hash-flutter-prebuilts.sh` reescreveu `checksums.sha256`.
+
+Execução em `flutter/dbm_sqlite/example`, com Flutter 3.50.0, no simulador
+acima. `make build-ios-simulator` gerou `Runner.app`. Em seguida, com saída 0:
+
+- `make test-sqlite-only`: a variante padrão recusou `openEncrypted` e não criou
+  arquivo. 1 teste.
+- `make test-integration`: upgrade com despesa nova e rejeição de migration
+  alterada sem perder linhas. 2 testes.
+- `make test-sqlcipher`: jornada cifrada com chave sintética. 1 teste.
+- checkout isolado sem `DbmSqliteCipher.xcframework` e com
+  `DBM_SQLITE_SQLCIPHER=true`: `missing_cipher_test` recusou a abertura e não
+  criou arquivo em texto claro. 1 teste.
+
+O `Runner.app` embutiu os dois frameworks arm64, com install names distintos. A
+assinatura era ad hoc, sem team. A evidência de execução são esses testes.
+Compilação e execução no macOS desktop, aparelho físico, assinatura de
+distribuição, custódia de chave, rotação e backup cifrado não fizeram parte
+desta execução.
