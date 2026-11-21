@@ -40,6 +40,40 @@ jobs:
       - name: Check vendored Flutter libraries
         run: bash tools/check-flutter-plugin.sh
 
+  windows-rust:
+    name: Rust checks on Windows
+    runs-on: windows-latest
+    steps:
+      # Revalidated against the canonical upstream release on 2026-11-21:
+      # https://github.com/actions/checkout/releases/tag/v7.0.1
+      # The tag object is commit 3d3c42e5aac5ba805825da76410c181273ba90b1.
+      # This job checks the Rust crate on Windows. It does not build or
+      # launch a Flutter Windows app; that desktop target is not vendored.
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe
+          ./rustup-init.exe -y --default-toolchain 1.99.1 --profile minimal --component rustfmt,clippy
+          Add-Content $env:GITHUB_PATH "$env:USERPROFILE\.cargo\bin"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace --all-features --locked
+
+      - name: Build
+        run: cargo build --workspace --all-features --locked
+
   ios-xcframework:
     name: Build the iOS XCFramework
     runs-on: macos-latest
