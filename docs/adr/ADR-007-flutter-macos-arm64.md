@@ -18,7 +18,7 @@ runner do Flutter 3.50. Não há slice Intel. A seleção é a mesma das outras
 plataformas: sem `--dart-define=DBM_SQLITE_SQLCIPHER=true` o app abre SQLite;
 com a definição, abre o framework cifrado. `open` continua em texto claro.
 `openEncrypted` não recorre a texto claro. Windows, web e macOS Intel ficam de
-fora. A jornada do app Flutter em Linux x86_64 continua por verificar.
+fora. A jornada Linux x86_64 já tinha passado em 2026-11-20 e está na ADR-005; ela não cobre Linux ARM.
 
 ## Verificação
 
@@ -50,5 +50,5 @@ claro. Cada `flutter test`, e também esse `flutter run`, imprimiu
 Um `open` posterior do mesmo bundle devolveu 0. O aviso de Swift Package Manager para macOS
 continua, sem interromper o build. Não há slice Intel. Não é produção.
 Aparelho físico, assinatura de distribuição, custódia, rotação e backup
-cifrado ficaram de fora. A jornada do app Flutter em Linux x86_64 continua
-por verificar.
+cifrado ficaram de fora. A jornada Linux x86_64 de 2026-11-20 está na ADR-005
+e não cobre Linux ARM.
