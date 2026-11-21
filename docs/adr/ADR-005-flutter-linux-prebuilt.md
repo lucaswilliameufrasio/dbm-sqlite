@@ -28,14 +28,20 @@ de persistência e concorrência; não é implementada por este corte.
 
 São necessários checks de checksum e formato ELF, testes da ABI real e uma
 jornada de app Flutter em Linux. A arquitetura, glibc e plataforma efetivamente
-testadas devem ser explicitadas. Sem jornada nativa, o corte continua
-experimental, não significa suporte desktop completo e não demonstra macOS,
+testadas devem ser explicitadas. A jornada nativa passou neste host, e o corte
+continua experimental: não é suporte desktop completo e não demonstra macOS,
 Windows ou Linux ARM. Quando um desses alvos for adicionado, suas bibliotecas
 e testes deverão ser específicos da plataforma.
 
 O exemplo Flutter possui um runner Linux gerado com Flutter 3.50.0 e os alvos
-`make build-linux` e `make run-linux`. A geração dos arquivos não comprova
-compilação nem execução da jornada em desktop.
+`make build-linux` e `make run-linux`. Em 2026-11-20, num host x86_64 CachyOS
+com glibc 2.44 e Flutter 3.50.0, `flutter test -d linux` sob Xvfb passou a
+jornada do ledger (2 testes), a variante SQLite padrão (1) e a jornada
+SQLCipher com chave sintética (1). O bundle de debug continha as duas
+bibliotecas vendidas. O display era virtual. No mesmo host, em 2026-11-20, uma
+sessão Xvfb privada mostrou a janela do exemplo e a jornada sintética na tela.
+Uma sessão KWin privada desenhou só o quarto inferior esquerdo da superfície
+Flutter e o clique não gravou gasto.
 
 `tools/check-flutter-plugin.sh` também configura o CMake em um projeto
 descartável: exige que x86_64 forneça duas bibliotecas existentes e

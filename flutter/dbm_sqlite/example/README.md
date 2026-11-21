@@ -3,15 +3,15 @@
 O app registra um gasto no aparelho. Os dois arquivos em `assets/` são o SQL de subida, os mesmos bytes de `database-migrator/examples/local-ledger/phone`. A abertura aplica os dois. Um arquivo que só tinha a primeira versão conserva a linha e recebe `category` `geral`.
 
 O build não chama o Cargo. O plugin `dbm_sqlite` traz os binários de Android e
-iOS. Há também um binário experimental para Linux x86_64, mas o exemplo ainda
-não foi validado como app desktop. Web e os outros desktops ficam de fora.
-Nada é publicado no pub.dev.
+iOS. Há também um binário experimental para Linux x86_64. Em 2026-11-20, neste
+host x86_64 (CachyOS, glibc 2.44, Flutter 3.50.0), `flutter test -d linux` sob
+Xvfb passou a jornada do ledger (2), a variante padrão (1) e a jornada
+SQLCipher (1). Isso não é produção e não cobre Linux ARM. Web e os outros
+desktops ficam de fora. Nada é publicado no pub.dev.
 
-O diretório `linux/` foi gerado pelo Flutter 3.50.0. Em um host Linux x86_64
-com o toolchain desktop Flutter e um display disponíveis, `make build-linux`
+O diretório `linux/` foi gerado pelo Flutter 3.50.0. `make build-linux`
 compila o app, `make run-linux` o inicia e
-`make test-integration DEVICE=linux` executa a jornada. A presença do runner
-não significa que esses comandos tenham sido validados neste host.
+`make test-integration DEVICE=linux` executa a jornada.
 
 ```sh
 flutter test
@@ -45,6 +45,11 @@ nos binários Android ou iOS.
 
 Em 2026-11-18, a jornada de integração passou duas vezes no emulador Android
 15 (API 35, x86_64), com Flutter 3.50.0: dois testes em cada execução.
-Isso não valida as ABIs ARM nem substitui a execução no iOS.
 Na continuação, a jornada SQLCipher, o teste da variante padrão e os dois
 testes SQLite também passaram no mesmo emulador com ambas as bibliotecas no APK.
+Em 2026-11-21, no Mac mini, um emulador headless arm64-v8a (Android 15, API 35,
+página de 4096 bytes) passou a jornada do ledger (2) e a variante padrão (1).
+A jornada SQLCipher fez a abertura cifrada, rejeitou a chave errada e mostrou
+o gasto novo na captura; o localizador de texto "Mercado" falhou nessa execução
+e também numa repetição posterior da jornada simples. `armeabi-v7a` e página de
+16 KB não foram executados.
